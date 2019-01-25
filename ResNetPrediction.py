@@ -74,20 +74,6 @@ def get_data(sz,bs):
 
     return md
 
-
-def export(self, fname:str='export.pkl'):
-    "Export the state of the `Learner` in `self.path/fname`."
-    args = ['opt_func', 'loss_func', 'metrics', 'true_wd', 'bn_wd', 'wd', 'train_bn', 'model_dir', 'callback_fns']
-    state = {a:getattr(self,a) for a in args}
-    state['cb_state'] = {cb.__class__:cb.get_state() for cb in self.callbacks}
-    #layer_groups -> need to find a way
-    #TO SEE: do we save model structure and weights separately?
-    state['model'] = self.model
-    xtra = dict(normalize=self.data.norm.keywords) if getattr(self.data, 'norm', False) else {}
-    state['data'] = self.data.valid_ds.get_state(**xtra)
-    state['cls'] = self.__class__
-    torch.save(state, open(self.path/fname, 'wb'))
-
 sz = 256 #image size
 bs = 64  #batch size
 
@@ -95,26 +81,29 @@ bs = 64  #batch size
 # , bs=4, num_workers=0
 tfm = [rotate(degrees=(-90, 90)), dihedral()]
 md = (ImageDataBunch.from_csv(
-    '..\\ShipDetection\\1percent\\',
+    '..\\_10kRun\\Raw\\',
     folder='train',
-    valid_pct=0.5,
+    valid_pct=0.2,
     csv_name='labels.csv',
     bs=5,
     num_workers=0,
     tmfs=tfm,
     test='test'))
 
-img = md.test_ds[0][0]
-
 empty_data = ImageDataBunch.load_empty('..\\ShipDetection\\1percent\\')
 #learn = create_cnn(empty_data, models.resnet34)
 #learn = learn.load('Resnet34_lable_256_1_Raducu')
 
-learn = create_cnn(md, models.resnet34, metrics=[accuracy], ps=0.2).load('Resnet34_lable_256_1_Raducu')
+outFile = open('First_class.csv', "w")
+outFile.write("img|pred\n")
+learn = create_cnn(md, models.resnet34, metrics=[accuracy], ps=0.2).load('Resnet34_Raducu_10k_first')
 for i in range(len(md.test_ds)):
     img = md.test_ds[i][0]
-    print(learn.predict(img))
+    outFile.write("%s|%s\n" % (md.test_ds.x.items[i]._cparts[4], str(learn.predict(img))))
+    print(i)
 
+
+outFile.close()
 i = 20
 
 
